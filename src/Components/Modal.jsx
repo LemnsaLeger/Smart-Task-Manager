@@ -149,7 +149,9 @@ const Modal = ({ show, type, onClose }) => {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm ${show ? "block" : "hidden"}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm ${
+        show ? "block" : "hidden"
+      } -max-h-[70vh] overflow-y-auto`}
     >
       <div className="glass-card p-6 w-11/12 max-w-md mx-auto">
         <header
