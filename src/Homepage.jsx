@@ -1,0 +1,52 @@
+import Navbar from "./Components/Navbar.jsx";
+import Card from "./Components/Card.jsx";
+import InProgressTask from "./Components/TaskinProgress.jsx";
+import TaskList from "./Components/TaskList.jsx";
+import TaskItem from "./Components/Taskitem.jsx";
+
+import  "../src/index.css";
+
+import { Plus } from "lucide-react";
+
+const HomePage = () => {
+    // const color = "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500";
+ return (
+   <>
+     <header className="w-full hstatic  top-0 left-0 z-50 h-[4rem] shadow-sm">
+       <Navbar />
+     </header>
+     <main className="p-4">
+       <section className="cards-projects">
+         <section className="projects-header flex justify-between mb-2">
+           <h3 className="relative -bottom-2 font-medium text-2xl">Projects</h3>
+           <button className="bg-black p-2 rounded-full text-white cursor-pointer">
+             <Plus strokeWidth={3} />
+           </button>
+         </section>
+         <Card />
+
+         {/* bar carousel for  */}
+         <section className="my-6 mt-8">
+           <h3 className="text-xl font-semibold mb-4">In Progress</h3>
+           <div className="flex gap-4 overflow-x-auto pb-4 scroll-container">
+             <InProgressTask title="Design Landing Page" />
+             <InProgressTask title="Build API Endpoints" />
+             <InProgressTask title="Configure Database" />
+           </div>
+         </section>
+       </section>
+       <aside className="tasks">
+         <h3 className="relative -bottom-2 font-medium text-2xl">
+           Today's Tasks
+         </h3>
+        <section>
+            <TaskList />
+        </section>
+       </aside>
+     </main>
+     {/* <p>We are home!</p> */}
+   </>
+ );
+}
+
+export default HomePage;
