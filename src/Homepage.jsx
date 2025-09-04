@@ -2,7 +2,7 @@ import Navbar from "./Components/Navbar.jsx";
 import Card from "./Components/Card.jsx";
 import InProgressTask from "./Components/TaskinProgress.jsx";
 import TaskList from "./Components/TaskList.jsx";
-import TaskItem from "./Components/Taskitem.jsx";
+import Button from "./Components/Button.jsx";
 
 import  "../src/index.css";
 
@@ -35,10 +35,14 @@ const HomePage = () => {
            </div>
          </section>
        </section>
-       <aside className="tasks">
-         <h3 className="relative -bottom-2 font-medium text-2xl">
+       <aside className="tasks relative">
+         <h3 className="font-medium text-2xl">
            Today's Tasks
          </h3>
+         {/* {create new task butto} */}
+        <div className="flex items-center justify-end gap-1 font-medium absolute right-4 top-2 p-1 rounded-2xl  cursor-pointer border border-gray-300">
+            new task <Button />
+        </div>
         <section>
             <TaskList />
         </section>
