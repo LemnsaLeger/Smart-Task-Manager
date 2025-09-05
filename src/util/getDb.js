@@ -1,3 +1,5 @@
+import toast from "react-hot-toast";
+
 const getDB = () => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("SmartTaskManager", 2);
@@ -26,6 +28,7 @@ const getDB = () => {
 
     request.onerror = () => {
       reject("Failed to open IndexedDB");
+        toast.error("Failed to access database, please try again");
     };
   });
 };
