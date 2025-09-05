@@ -1,6 +1,128 @@
-
+import { useEffect, useState } from "react";
+import getDB from "../util/getDb";
 
 const Modal = ({ show, type, onClose }) => {
+  // states to manage project/task form inputs can be added here
+  const [projectTitle, setProjectTitle] = useState("");
+  const [taskTitle, setTaskTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [tags, setTags] = useState("");
+  const [associatedProject, setAssociatedProject] = useState("");
+  const [priority, setPriority] = useState("");
+  const [accentColor, setAccentColor] = useState("");
+  const [projects, setProjects] = useState([]);
+
+useEffect(() => {
+  const request = indexedDB.open("SmartTaskManager", 2);
+
+  request.onupgradeneeded = (event) => {
+    const db = event.target.result;
+
+    // Create "projects" store if it doesn't exist
+    if (!db.objectStoreNames.contains("projects")) {
+      db.createObjectStore("projects", {
+        keyPath: "id",
+        autoIncrement: true,
+      });
+    }
+
+    // Create "tasks" store if it doesn't exist
+    if (!db.objectStoreNames.contains("tasks")) {
+      db.createObjectStore("tasks", {
+        keyPath: "id",
+        autoIncrement: true,
+      });
+    }
+  };
+
+  request.onsuccess = (event) => {
+    const db = event.target.result;
+
+    // Only load projects if opening task modal
+    if (type === "task" && show) {
+      const transaction = db.transaction("projects", "readonly");
+      const store = transaction.objectStore("projects");
+
+      const getAll = store.getAll();
+      getAll.onsuccess = () => {
+        setProjects(getAll.result);
+      };
+    }
+  };
+
+  request.onerror = (e) => {
+    console.error("IndexedDB error:", e);
+  };
+}, [type, show]);
+
+  // initialize IndexedDB
+  const request = indexedDB.open("SmartTaskManager", 2);
+
+  request.onupgradeneeded = function (event) {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains("projects")) {
+      db.createObjectStore("projects", {
+        keyPath: "id",
+        autoIncrement: true,
+      });
+    }
+    if (!db.objectStoreNames.contains("tasks")) {
+      db.createObjectStore("tasks", { keyPath: "id", autoIncrement: true });
+    }
+  };
+
+  // function to handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("Submitting form for:", type);
+    const formData =
+      type === "project"
+        ? {
+            projectTitle,
+            description,
+            accentColor,
+          }
+        : {
+            taskTitle,
+            description,
+            dueDate,
+            tags: tags.split(",").map((t) => t.trim()),
+            associatedProject,
+            priority,
+          };
+
+    try {
+      const db = await getDB().then((database) => database);
+      const tx = db.transaction(
+        type === "project" ? "projects" : "tasks",
+        "readwrite"
+      );
+      const store = tx.objectStore(type === "project" ? "projects" : "tasks");
+      const request = store.add(formData);
+
+      request.onsuccess = () => {
+        console.log(`${type} added successfully`);
+      };
+
+      request.onerror = (event) => {
+        console.error("Error adding to IndexedDB:", event.target.error);
+      };
+    } catch (err) {
+      console.error("IndexedDB error:", err);
+    } 
+    
+    onClose(); // close modal after submission
+    // Reset form fields
+    setProjectTitle("");
+    setTaskTitle("");
+    setDescription("");
+    setDueDate("");
+    setTags("");
+    setAssociatedProject("");
+    setPriority("");
+    setAccentColor("");
+  };
 
   if (!show) {
     return null;
@@ -26,6 +148,8 @@ const Modal = ({ show, type, onClose }) => {
             id="project-title"
             className={glassInputClasses}
             placeholder="e.g., UI/UX Design"
+            value={projectTitle}
+            onChange={(e) => setProjectTitle(e.target.value)}
           />
         </div>
         <div>
@@ -40,6 +164,8 @@ const Modal = ({ show, type, onClose }) => {
             className={glassInputClasses}
             rows="3"
             placeholder="e.g., Create wireframes and mockups."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           ></textarea>
         </div>
         <div>
@@ -52,14 +178,17 @@ const Modal = ({ show, type, onClose }) => {
             <button
               type="button"
               className="w-8 h-8 rounded-full bg-purple-500/50 hover:ring-2 ring-blue-500 transition-all"
+              onClick={() => setAccentColor("purple")}
             ></button>
             <button
               type="button"
               className="w-8 h-8 rounded-full bg-cyan-500/50 hover:ring-2 ring-blue-500 transition-all"
+              onClick={() => setAccentColor("cyan")}
             ></button>
             <button
               type="button"
               className="w-8 h-8 rounded-full bg-pink-500/50 hover:ring-2 ring-blue-500 transition-all"
+              onClick={() => setAccentColor("pink")}
             ></button>
           </div>
         </div>
@@ -78,6 +207,8 @@ const Modal = ({ show, type, onClose }) => {
             id="task-title"
             className={glassInputClasses}
             placeholder="e.g., Finish wireframes"
+            value={taskTitle}
+            onChange={(e) => setTaskTitle(e.target.value)}
           />
         </div>
         <div>
@@ -89,13 +220,21 @@ const Modal = ({ show, type, onClose }) => {
             className={glassInputClasses}
             rows="3"
             placeholder="e.g., Complete the homepage and task view wireframes."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           ></textarea>
         </div>
         <div>
           <label htmlFor="due-date" className="text-sm font-semibold">
             Due Date
           </label>
-          <input type="date" id="due-date" className={`${glassInputClasses}`} />
+          <input
+            type="date"
+            id="due-date"
+            className={`${glassInputClasses}`}
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
         </div>
         <div>
           <label htmlFor="tags" className="text-sm font-semibold">
@@ -106,6 +245,8 @@ const Modal = ({ show, type, onClose }) => {
             id="tags"
             className={glassInputClasses}
             placeholder="e.g., #urgent, #design"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
           />
         </div>
         <div>
@@ -115,9 +256,22 @@ const Modal = ({ show, type, onClose }) => {
           <select
             id="project-select"
             className={`${glassInputClasses} bg-transparent`}
+            value={associatedProject}
+            onChange={(e) => setAssociatedProject(e.target.value)}
           >
-            <option className="bg-neutral-800">UI/UX Design</option>
-            <option className="bg-neutral-800">Front-End Development</option>
+            <option className="bg-neutral-800" value="">
+              -- Select a Project --
+            </option>
+
+            {projects.map((project) => (
+              <option
+                key={project.id}
+                className="bg-white/100 text-black"
+                value={project.projectTitle}
+              >
+                {project.projectTitle}
+              </option>
+            ))}
           </select>
         </div>
         <fieldset>
@@ -126,18 +280,22 @@ const Modal = ({ show, type, onClose }) => {
             <button
               type="button"
               className={`${priorityButtonClasses} bg-red-500/50 border-red-500 hover:bg-red-500 transition-colors`}
+              value={priority}
+              onClick={() => setPriority("high")}
             >
               High
             </button>
             <button
               type="button"
               className={`${priorityButtonClasses} bg-yellow-500/50 border-yellow-500 hover:bg-yellow-500 transition-colors`}
+              onClick={() => setPriority("medium")}
             >
               Medium
             </button>
             <button
               type="button"
               className={`${priorityButtonClasses} bg-blue-500/50 border-blue-500 hover:bg-blue-500 transition-colors`}
+              onClick={() => setPriority("low")}
             >
               Low
             </button>
@@ -151,7 +309,7 @@ const Modal = ({ show, type, onClose }) => {
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm ${
         show ? "block" : "hidden"
-      } -max-h-[70vh] overflow-y-auto`}
+      } -max-h-[70vh] overflow-y-auto transition-all duration-300 ease-out transform scale-95 `}
     >
       <div className="glass-card p-6 w-11/12 max-w-md mx-auto">
         <header
@@ -186,7 +344,10 @@ const Modal = ({ show, type, onClose }) => {
           >
             Cancel
           </button>
-          <button className="px-4 py-2 text-sm rounded-full bg-gray-900 text-white transition-colors">
+          <button
+            className="px-4 py-2 text-sm rounded-full bg-gray-900 text-white transition-colors"
+            onClick={handleSubmit}
+          >
             Save
           </button>
         </footer>
