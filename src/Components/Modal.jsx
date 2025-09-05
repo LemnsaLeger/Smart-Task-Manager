@@ -13,6 +13,9 @@ const Modal = ({ show, type, onClose }) => {
   const [priority, setPriority] = useState("");
   const [accentColor, setAccentColor] = useState("");
   const [projects, setProjects] = useState([]);
+    // state for holding errors
+  const [errors, setErrors] = useState({
+  });
 
 useEffect(() => {
   const request = indexedDB.open("SmartTaskManager", 2);
@@ -77,6 +80,27 @@ useEffect(() => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Submitting form for:", type);
+    // handle validation
+    const newErrors = {};
+
+    if(type === "project") {
+        if(!projectTitle.trim()) newErrors.projectTitle = "Project title is required";
+    }
+
+    
+  if (type === "task") {
+    if (!taskTitle.trim()) newErrors.taskTitle = "Task title is required";
+    if (!dueDate.trim()) newErrors.dueDate = "Due date is required";
+    if (!associatedProject.trim())
+      newErrors.associatedProject = "Select a project";
+  }
+
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
+  setErrors({});
+
     const formData =
       type === "project"
         ? {
@@ -150,11 +174,14 @@ useEffect(() => {
           <input
             type="text"
             id="project-title"
-            className={glassInputClasses}
+            className={`${glassInputClasses} ${
+              errors.projectTitle ? "border-red-500 ring-red-50" : ""
+            }`}
             placeholder="e.g., UI/UX Design"
             value={projectTitle}
             onChange={(e) => setProjectTitle(e.target.value)}
           />
+          {errors.projectTitle && <p className="text-sm text-red-500 mt-1">{errors.projectTitle}</p>}
         </div>
         <div>
           <label
@@ -209,11 +236,18 @@ useEffect(() => {
           <input
             type="text"
             id="task-title"
-            className={glassInputClasses}
+            className={`${glassInputClasses} ${
+              errors.taskTitle ? "border-red-500 ring-red-500" : ""
+            }`}
             placeholder="e.g., Finish wireframes"
             value={taskTitle}
             onChange={(e) => setTaskTitle(e.target.value)}
           />
+          {
+            errors.taskTitle && (
+                <p className="text-sm text-red-500 mt-1">{errors.taskTitle}</p>
+            )
+          }
         </div>
         <div>
           <label htmlFor="task-description" className="text-sm font-semibold">
@@ -235,10 +269,17 @@ useEffect(() => {
           <input
             type="date"
             id="due-date"
-            className={`${glassInputClasses}`}
+            className={`${glassInputClasses} ${
+              errors.taskTitle ? "border-red-500 ring-red-500" : ""
+            }`}
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
+          {
+            errors.dueDate && (
+                <p className="text-sm text-red-500 mt-1">{errors.dueDate}</p>
+            )
+          }
         </div>
         <div>
           <label htmlFor="tags" className="text-sm font-semibold">
@@ -259,7 +300,9 @@ useEffect(() => {
           </label>
           <select
             id="project-select"
-            className={`${glassInputClasses} bg-transparent`}
+            className={`${glassInputClasses} bg-transparent ${
+              errors.taskTitle ? "border-red-500 ring-red-500" : ""
+            }`}
             value={associatedProject}
             onChange={(e) => setAssociatedProject(e.target.value)}
           >
@@ -277,6 +320,9 @@ useEffect(() => {
               </option>
             ))}
           </select>
+          {errors.associatedProject && (
+            <p className="text-sm text-red-500 mt-1">{errors.associatedProject}</p>
+          )}
         </div>
         <fieldset>
           <legend className="text-sm font-semibold mb-2">Priority</legend>
