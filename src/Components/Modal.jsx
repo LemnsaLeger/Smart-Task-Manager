@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import getDB from "../util/getDb";
+import toast from "react-hot-toast";
 
 const Modal = ({ show, type, onClose }) => {
   // states to manage project/task form inputs can be added here
@@ -103,13 +104,16 @@ useEffect(() => {
 
       request.onsuccess = () => {
         console.log(`${type} added successfully`);
+        toast.success(`${type === "project" ? "Project" : "Task"} added!`);
       };
 
       request.onerror = (event) => {
         console.error("Error adding to IndexedDB:", event.target.error);
+        toast.error("Error adding item. Please try again.");
       };
     } catch (err) {
       console.error("IndexedDB error:", err);
+        toast.error("Error accessing database. Please try again.");
     } 
     
     onClose(); // close modal after submission
