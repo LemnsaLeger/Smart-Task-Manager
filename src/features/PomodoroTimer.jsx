@@ -1,5 +1,6 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect, useRef} from "react";
 import { Pause, PlayIcon, X, Check } from "lucide-react";
+import toast from "react-hot-toast";
 
 const Timer = () => {
   const DATE = new Date();
@@ -11,6 +12,95 @@ const Timer = () => {
   });
   const [modal, setModal] = useState(false);
 
+  // durations would be in seconds
+    const [workDuration, setWorkDuration] = useState(25 * 60);
+    const [isActive, setIsActive] = useState(false);
+    const [timer, setTimer] = useState(workDuration);
+    const [shortDuration, setShortDuration] = useState(5 * 60); // for short break
+    const [longDuration, setLongDuration] = useState(15 * 60);
+    const [currentMode, setCurrentMode] = useState("work");
+    const [remainingTime, setRemainingTime] = useState(25);
+    const [numberOfCycles, setNumberOfCycles] = useState(0);
+
+    // useRef to persist interval id between renders
+    const intervalRef = useRef(null);
+
+    // update a timer when duration or mode changes
+    useEffect(() => {
+        if(currentMode === "work")  setTimer(workDuration);
+        else if(currentMode === "short break") setTimer(shortDuration);
+        else setTimer(longDuration);
+    }, [workDuration, shortDuration, longDuration, currentMode]);
+
+    // timer countdown effect
+    useEffect(() => {
+        if(isActive) {
+            intervalRef.current = setInterval(() => {
+                setTimer((prev) => {
+                    if(prev === 0) {
+                        clearInterval(intervalRef.current); // when timer hits 0
+                        handleIntervalEnd();
+                        return prev;
+                    }
+                    return prev - 1;
+                });
+            }, 1000)
+        }
+        return () => clearInterval(intervalRef.current);
+    }, [isActive]);
+
+    // handle what happens when timer hits 0
+    const handleIntervalEnd = () => {
+        toast.success(`${currentMode}'s mode is Up!`);
+        if(currentMode === 'work') {
+            const newCycles = numberOfCycles + 1;
+            setNumberOfCycles(newCycles);
+
+            if(newCycles % 4 === 0) {
+                setCurrentMode("long break");
+            } else {
+                setCurrentMode("short break");
+            }
+        } else {
+            setCurrentMode("work");
+        }
+        setIsActive(true); // automatically starting next session
+    };
+
+
+    // format seconds to mm:ss
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+
+        return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    };
+
+    // users choice change handler , converting m to s
+    const handleWorkChange = (value) => {
+        const val = Math.max(1, Number(value))
+        setWorkDuration(val * 60);
+    }
+
+    const handleShortBreakChange = (value) => {
+        const val = Math.max(1, Number(value));
+        setShortDuration(val * 60);
+    }
+
+    const handleLongBreakChange = (value) => {
+        const val = Math.max(1, Number(value));
+        setLongDuration(val * 60);
+    }
+
+    // buttons control
+    const startTimer = () => setIsActive(true);
+    const pauseTimer = () => setIsActive(false);
+    const resetTimer = () => {
+        setIsActive(false);
+        if(currentMode === "work") setTimer(workDuration);
+        else if(currentMode === "short break") setTimer(shortDuration);
+        else setTimer(longDuration);
+    }
   // handle modAL visibility
   const handleModal = () => {
     setModal(!modal)
@@ -85,18 +175,27 @@ const Timer = () => {
         id="clock-container"
         className="border-2 h-40 w-40 mt-4 mb-4 rounded-[50%] place-self-center p-2"
       >
-        <h3 className="w-20 mt-4 m-auto font-medium">{`${hours}:${minutes} ${ampm()}`}</h3>
-        <h2 className="m-auto text-4xl mt-2 text-wrap overflow-hidden font-bold">25:00:00</h2>
+        <h3 className="w-20 mt-4 m-auto font-medium">{`${hours
+          .toString()
+          .padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")} ${ampm()}`}</h3>
+        <h2 className="m-auto text-4xl mt-2 text-wrap overflow-hidden font-bold">
+          {formatTime(timer)}
+        </h2>
 
         <div className="buttons flex items-center justify-center mt-4">
-          <button>
-            <PlayIcon />
+          <button
+            onClick={startTimer}
+            disabled={`${isActive === false ? true : false}`}
+          >
+            <PlayIcon color={`${isActive === true ? "gray" : "black"}`} />
           </button>
-          <button>
-            <Pause />
+          <button onClick={pauseTimer}>
+            <Pause color={`${isActive === true ? "black" : "gray"}`} />
           </button>
         </div>
-        <p className="mt-6 uppercase text-center">work</p>
+        <p className="mt-6 uppercase text-center">{currentMode}</p>
       </section>
 
       <section id="manage-buttons" className="grid gap-2 mt-8">
@@ -112,7 +211,10 @@ const Timer = () => {
         >
           Set interval
         </button>
-        <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer ">
+        <button
+          onClick={resetTimer}
+          className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer "
+        >
           Reset timer
         </button>
         <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer ">
