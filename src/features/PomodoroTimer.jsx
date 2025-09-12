@@ -12,18 +12,19 @@ const Timer = () => {
   });
   const [modal, setModal] = useState(false);
 
-  // durations would be in seconds
-    const [workDuration, setWorkDuration] = useState(25 * 60);
+  // durations would be in milliseconds
+    const [workDuration, setWorkDuration] = useState(25 * 60 * 1000);
     const [isActive, setIsActive] = useState(false);
     const [timer, setTimer] = useState(workDuration);
-    const [shortDuration, setShortDuration] = useState(5 * 60); // for short break
-    const [longDuration, setLongDuration] = useState(15 * 60);
+    const [shortDuration, setShortDuration] = useState(5 * 60 * 1000); // for short break
+    const [longDuration, setLongDuration] = useState(15 * 60 * 1000);
     const [currentMode, setCurrentMode] = useState("work");
-    const [remainingTime, setRemainingTime] = useState(25);
+    const [remainingTime, setRemainingTime] = useState(workDuration);
     const [numberOfCycles, setNumberOfCycles] = useState(0);
 
     // useRef to persist interval id between renders
     const intervalRef = useRef(null);
+    const lastUpdatedRef = useRef(Date.now());
 
     // update a timer when duration or mode changes
     useEffect(() => {
@@ -35,16 +36,21 @@ const Timer = () => {
     // timer countdown effect
     useEffect(() => {
         if(isActive) {
+            lastUpdatedRef.current = Date.now();
             intervalRef.current = setInterval(() => {
+                const now = Date.now();
+                const change = now - lastUpdatedRef.current;
+                lastUpdatedRef.current = now;
                 setTimer((prev) => {
-                    if(prev === 0) {
+                    const next = prev - change;
+                    if(next <= 0) {
                         clearInterval(intervalRef.current); // when timer hits 0
                         handleIntervalEnd();
-                        return prev;
+                        return 0;
                     }
-                    return prev - 1;
+                    return next;
                 });
-            }, 1000)
+            }, 50) // update every 50 milliseconds
         }
         return () => clearInterval(intervalRef.current);
     }, [isActive]);
@@ -69,27 +75,29 @@ const Timer = () => {
 
 
     // format seconds to mm:ss
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
+    const formatTime = (milliseconds) => {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        const ms = Math.floor((milliseconds % 1000) / 10); // show 2 digits example is 56 for 560 ms
 
-        return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+        return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}:${ms.toString().padStart(2, "0")}`;
     };
 
     // users choice change handler , converting m to s
     const handleWorkChange = (value) => {
         const val = Math.max(1, Number(value))
-        setWorkDuration(val * 60);
+        setWorkDuration(val * 60 * 1000);
     }
 
     const handleShortBreakChange = (value) => {
         const val = Math.max(1, Number(value));
-        setShortDuration(val * 60);
+        setShortDuration(val * 60 * 1000);
     }
 
     const handleLongBreakChange = (value) => {
         const val = Math.max(1, Number(value));
-        setLongDuration(val * 60);
+        setLongDuration(val * 60 * 1000);
     }
 
     // buttons control
@@ -186,12 +194,13 @@ const Timer = () => {
 
         <div className="buttons flex items-center justify-center mt-4">
           <button
+            className="cursor-pointer"
             onClick={startTimer}
-            disabled={`${isActive === false ? true : false}`}
+            disabled={isActive === false ? false : true}
           >
             <PlayIcon color={`${isActive === true ? "gray" : "black"}`} />
           </button>
-          <button onClick={pauseTimer}>
+          <button onClick={pauseTimer} className="cursor-pointer">
             <Pause color={`${isActive === true ? "black" : "gray"}`} />
           </button>
         </div>
@@ -203,13 +212,13 @@ const Timer = () => {
           set status
         </button>
         <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer">
-          pause
+          Set break interval
         </button>
         <button
           onClick={handleModal}
           className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer "
         >
-          Set interval
+          Set Work interval
         </button>
         <button
           onClick={resetTimer}
