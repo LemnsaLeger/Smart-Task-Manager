@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef} from "react";
-import { Pause, PlayIcon, X, Check } from "lucide-react";
+import { Pause, PlayIcon, X, Check, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
 const Timer = () => {
@@ -21,6 +21,8 @@ const Timer = () => {
     const [currentMode, setCurrentMode] = useState("work");
     const [remainingTime, setRemainingTime] = useState(workDuration);
     const [numberOfCycles, setNumberOfCycles] = useState(0);
+    const [totalTimeWorking, setWorkingTime] = useState(0);
+    const [isComplete, setIsComplete] = useState(false);
 
     // useRef to persist interval id between renders
     const intervalRef = useRef(null);
@@ -47,7 +49,7 @@ const Timer = () => {
                         clearInterval(intervalRef.current); // when timer hits 0
                         handleIntervalEnd();
                         return 0;
-                    }
+                    } 
                     return next;
                 });
             }, 50) // update every 50 milliseconds
@@ -61,7 +63,7 @@ const Timer = () => {
         if(currentMode === 'work') {
             const newCycles = numberOfCycles + 1;
             setNumberOfCycles(newCycles);
-
+            setWorkingTime((prev) => prev + workDuration)
             if(newCycles % 4 === 0) {
                 setCurrentMode("long break");
             } else {
@@ -141,6 +143,14 @@ const Timer = () => {
     };
   });
 
+  // handle complete
+  const handleComplete = () => {
+    setIsComplete(!isComplete);
+    if(!isComplete) toast.success("Task Completed!"); pauseTimer();
+    if(isComplete) toast.error("Canceled!");
+
+  }
+
   return (
     <section id="timer-ui" className="min-h-[100vh] flex flex-col">
       <div
@@ -168,16 +178,34 @@ const Timer = () => {
         </div>
       </div>
       <h1 className="text-3xl uppercase font-semibold ">Manage This Task</h1>
-      <p className="capitalize text-xl mt-2 mb-2">project title</p>
+      <p className=" text-xl mt-2 mb-4">project description</p>
+
+      <section className="flex justify-between mb-4">
+        <p className="bg-red-900 text-white/80 w-fit p-1 rounded mb-2 font-medium">
+          High Priority
+        </p>
+        <div className="flex items-center border w-fit p-0.5 pl-1 pr-2 gap-2 text-sm rounded-2xl">
+          <Clock className="sm:size-6" />
+          <p>sep 11 - 13</p>
+        </div>
+      </section>
 
       <ul className="tags flex gap-4">
-        <li className="bg-gray-700 p-1.5 rounded flex justify-center items-center-safe text-gray-300 font-medium">
+        <li className="bg-gray-700 rounded flex justify-center items-center-safe text-gray-300 font-medium">
           #ui
         </li>
-        <li className="bg-gray-700 p-1.5 rounded flex justify-center items-center-safe text-gray-300 font-medium">
+        <li className="bg-gray-700 rounded flex justify-center items-center-safe text-gray-300 font-medium">
           #frontend
         </li>
       </ul>
+
+      {/* status bar */}
+      <section className="w-full h-8 bg-gray-300 rounded mt-4">
+        <p className="pl-2 font-medium flex justify-between pr-2">
+          {isActive ? "In Progress..." : `2 days to Due date!`}{" "}
+          <span className="block">Total time taken: {isComplete ? 0 : totalTimeWorking }</span>
+        </p>
+      </section>
 
       <section
         id="clock-container"
@@ -208,8 +236,10 @@ const Timer = () => {
       </section>
 
       <section id="manage-buttons" className="grid gap-2 mt-8">
-        <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer bg-black text-white border-black">
-          set status
+        <button
+          onClick={handleComplete}
+         className={`border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer ${isComplete ? " bg-black text-white" : ""} border-black`}>
+          {isComplete ? "Completed!" : "complete"}
         </button>
         <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer">
           Set break interval
