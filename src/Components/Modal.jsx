@@ -76,81 +76,82 @@ useEffect(() => {
     }
   };
 
-  // function to handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Submitting form for:", type);
-    // handle validation
-    const newErrors = {};
+ const handleSubmit = async (e) => {
+   e.preventDefault();
+   const newErrors = {};
 
-    if(type === "project") {
-        if(!projectTitle.trim()) newErrors.projectTitle = "Project title is required";
-    }
+   if (type === "project" && !projectTitle.trim()) {
+     newErrors.projectTitle = "Project title is required";
+   }
+   if (type === "task") {
+     if (!taskTitle.trim()) newErrors.taskTitle = "Task title is required";
+     if (!dueDate.trim()) newErrors.dueDate = "Due date is required";
+     if (!associatedProject.trim())
+       newErrors.associatedProject = "Select a project";
+   }
 
-    
-  if (type === "task") {
-    if (!taskTitle.trim()) newErrors.taskTitle = "Task title is required";
-    if (!dueDate.trim()) newErrors.dueDate = "Due date is required";
-    if (!associatedProject.trim())
-      newErrors.associatedProject = "Select a project";
-  }
+   if (Object.keys(newErrors).length > 0) {
+     setErrors(newErrors);
+     return;
+   }
 
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return;
-  }
-  setErrors({});
+   setErrors({});
+   const formData =
+     type === "project"
+       ? {
+           projectTitle,
+           description,
+           accentColor,
+           tags,
+           percentage: 0,
+           status: "stale",
+           createdAt: new Date(),
+         }
+       : {
+           taskTitle,
+           description,
+           dueDate,
+           tags: tags.split(",").map((t) => t.trim()),
+           associatedProject,
+           priority,
+           status: "pending",
+           timeCompleted: 0,
+           createdAt: new Date(),
+         };
 
-    const formData =
-      type === "project"
-        ? {
-            projectTitle,
-            description,
-            accentColor,
-          }
-        : {
-            taskTitle,
-            description,
-            dueDate,
-            tags: tags.split(",").map((t) => t.trim()),
-            associatedProject,
-            priority,
-          };
+   try {
+     const db = await getDB();
+     const tx = db.transaction(
+       type === "project" ? "projects" : "tasks",
+       "readwrite"
+     );
+     const store = tx.objectStore(type === "project" ? "projects" : "tasks");
 
-    try {
-      const db = await getDB().then((database) => database);
-      const tx = db.transaction(
-        type === "project" ? "projects" : "tasks",
-        "readwrite"
-      );
-      const store = tx.objectStore(type === "project" ? "projects" : "tasks");
-      const request = store.add(formData);
+     const request = store.add(formData);
 
-      request.onsuccess = () => {
-        console.log(`${type} added successfully`);
-        toast.success(`${type === "project" ? "Project" : "Task"} added!`);
-      };
+     request.onsuccess = () => {
+       toast.success(`${type === "project" ? "Project" : "Task"} added!`);
+       onClose(); // ✅ Only close when DB confirms
+       // Reset fields
+       setProjectTitle("");
+       setTaskTitle("");
+       setDescription("");
+       setDueDate("");
+       setTags("");
+       setAssociatedProject("");
+       setPriority("");
+       setAccentColor("");
+     };
 
-      request.onerror = (event) => {
-        console.error("Error adding to IndexedDB:", event.target.error);
-        toast.error("Error adding item. Please try again.");
-      };
-    } catch (err) {
-      console.error("IndexedDB error:", err);
-        toast.error("Error accessing database. Please try again.");
-    } 
-    
-    onClose(); // close modal after submission
-    // Reset form fields
-    setProjectTitle("");
-    setTaskTitle("");
-    setDescription("");
-    setDueDate("");
-    setTags("");
-    setAssociatedProject("");
-    setPriority("");
-    setAccentColor("");
-  };
+     request.onerror = (event) => {
+       console.error("Error adding to IndexedDB:", event.target.error);
+       toast.error("Error adding item. Please try again.");
+     };
+   } catch (err) {
+     console.error("IndexedDB error:", err);
+     toast.error("Error accessing database. Please try again.");
+   }
+ };
 
   if (!show) {
     return null;
@@ -198,6 +199,12 @@ useEffect(() => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           ></textarea>
+        </div>
+        <div>
+          <label htmlFor="tags">
+            Tags (Optional)
+          </label>
+          <input className={glassInputClasses} type="text" name="tags" placeholder="#fitness, #creative" id="tags" value={tags} onChange={(e) => setTags(e.target.value)}/>
         </div>
         <div>
           <p className="text-sm font-semibold mb-2">Accent Color</p>
