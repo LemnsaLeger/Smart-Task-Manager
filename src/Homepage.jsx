@@ -23,14 +23,18 @@ const HomePage = () => {
   const [page, setPage] = useState("home");
   const [taskFromDB, setTaskFromDB] = useState([]);
   const [projectsFromDB, setProjects] = useState([]);
-  const [editData, setEditData] = useState(null); // update pop
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
   const [activeProject, setActiveProject] = useState("");
 
-  const projectTasks = (projectName) => {
-    const tasks = taskFromDB.filter((task) => task.associatedProject === activeProject);
-    return tasks;
-  }
+  const projectTasks = useCallback((projectName) => {
+   return taskFromDB.filter((task) => task.associatedProject === projectName);
+  }, [taskFromDB]);
 
+  // handle modal visibility
+  const handleModal = ()  => {
+    setIsModalOpen(!isModalOpen)
+  }
   //  get projects and tasks
   const fetchProjects = async () => {
     try {
@@ -141,6 +145,26 @@ const HomePage = () => {
     setActiveProject(name);
   }
 
+  const handleEditingProject = (project) => {
+    setEditingProject(project);
+    setModalType("project");
+    setIsModalOpen(true);
+  };
+
+  const openModal = (type) => {
+    setModalType(type)
+    setIsModalOpen(true)
+  }
+
+  const onClose = () => {
+    setIsModalOpen(false);
+  }
+
+  useEffect(() => {
+    if(!isModalOpen) {
+      refreshData();
+    }
+  }, [isModalOpen, refreshData]);
 
   // render
   const render = () => {
@@ -153,8 +177,13 @@ const HomePage = () => {
             <Modal
               show={isModalOpen}
               type={modalType}
-              onClose={() => setIsModalOpen(false)}
+              onClose={onClose}
+              editingTask={editingTask}
+              setEditingTask={setEditingTask}
+              editingProject={editingProject}
+              setEditingProject={setEditingProject}
             />
+
             <section className="cards-projects">
               <section className="projects-header flex justify-between mb-2">
                 <h3 className="relative -bottom-2 font-medium text-2xl">
@@ -185,18 +214,12 @@ const HomePage = () => {
                       }
                       onClick={() => {
                         setPage("view project");
-                        setActiveProject(project.projectTitle)
+                        setActiveProject(project.projectTitle);
                       }}
                       percentageComplete={project.percentage}
                       createdAt={project.createdAt.toDateString()}
                       deleteItem={() => deleteItem("project", project.id)}
-                      updateItem={() => {
-                        const updatedProject = {
-                          ...project,
-                          projectTitle: "Updated title",
-                        };
-                        updateItem("project", updatedProject);
-                      }}
+                      updateItem={() => handleEditingProject(project)}
                     />
                   </div>
                 ))}
@@ -219,49 +242,67 @@ const HomePage = () => {
                 new task{" "}
                 <Button
                   onClick={() => {
-                    setModalType("task");
-                    setIsModalOpen(true);
+                    openModal("task");
                   }}
-                />   
+                />
               </div>
               <section>
-                <TaskList openTask={handleClickedTask}/>
+                {/* <TaskList openTask={handleClickedTask} /> */}
               </section>
             </aside>
           </main>
         );
 
-      case "view task":
-        if (activeTask) {
-          return <Timer handleBackHome={handleBackHome} />;
-        }
-        break;
       case "view project":
-        return <>
-          <TaskList tasks={projectTasks(activeProject)} openTask={handleClickedTask}/>
-        </>;
+        return (
+          <>
+            <Modal
+              show={isModalOpen}
+              type={modalType}
+              onClose={onClose}
+              editingTask={editingTask}
+              setEditingTask={setEditingTask}
+              editingProject={editingProject}
+              setEditingProject={setEditingProject}
+            />
+            <TaskList
+              tasks={projectTasks(activeProject)}
+              openTask={handleClickedTask}
+              setEditingTask={setEditingTask}
+              openModal={(type) => openModal(type)}
+              deleteTask={(id) => deleteItem("task", id)}
+              handleBackHome={handleBackHome}
+            />
+          </>
+        );
 
       case "project tasks":
-        return <TaskList tasks={taskFromDB} />;
+        return (
+          <>
+            <Modal
+              show={isModalOpen}
+              type={modalType}
+              onClose={onClose}
+              editingTask={editingTask}
+              setEditingTask={setEditingTask}
+              editingProject={editingProject}
+              setEditingProject={setEditingProject}
+            />
+            <TaskList
+              tasks={taskFromDB}
+              setEditingTask={setEditingTask}
+              openModal={(type) => openModal(type)}
+            />
+          </>
+        );
 
-        case "manage task":
-          return <Timer handleBackHome={handleBackHome}/>
+      case "manage task":
+        return <Timer handleBackHome={handleBackHome} task={activeTask} />;
+      
+      default:
+        return null;
     }
   };
-
-  const onClose = () => {
-    setIsModalOpen(false);
-  };
-
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-  
-  useEffect(() => {
-    if (!isModalOpen) {
-      refreshData();
-    }
-  }, [isModalOpen, refreshData]);
 
 
   return (
