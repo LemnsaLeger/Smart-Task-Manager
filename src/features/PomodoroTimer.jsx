@@ -185,7 +185,7 @@ const Timer = ({ handleBackHome, task}) => {
     const getCurrentDate = () => {
       const currrent = new Date();
       const month = currrent.getMonth() + 1;
-      const day = currrent.getDay();
+      const day = currrent.getDate();
       const fullYear = currrent.getFullYear();
 
       return `${fullYear}-${month.toString().padStart(2, 0)}-${day.toString().padStart(2, 0)}`;
@@ -194,7 +194,12 @@ const Timer = ({ handleBackHome, task}) => {
     setCurrentDate(getCurrentDate());
   }, []);
 
-
+  // total days worked
+  const getTotalTimeOfWork = () => {
+    if(isComplete) {
+      setWorkingTime()
+    }
+  }
 
   return (
     <section id="timer-ui" className="min-h-[100vh] flex flex-col p-4">
