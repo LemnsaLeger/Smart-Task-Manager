@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import getDB from "../util/getDb";
 import toast from "react-hot-toast";
 
-const Modal = ({ show, type, onClose }) => {
-  // states to manage project/task form inputs can be added here
+const Modal = ({ show, type, onClose, editingTask, setEditingTask, editingProject, setEditingProject }) => {
   const [projectTitle, setProjectTitle] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -17,48 +16,113 @@ const Modal = ({ show, type, onClose }) => {
   const [errors, setErrors] = useState({
   });
 
-useEffect(() => {
-  const request = indexedDB.open("SmartTaskManager", 2);
 
-  request.onupgradeneeded = (event) => {
-    const db = event.target.result;
+  // 
+  const isEditing =
+    type === "task" ? editingTask !== null : editingProject !== null;
 
-    // Create "projects" store if it doesn't exist
-    if (!db.objectStoreNames.contains("projects")) {
-      db.createObjectStore("projects", {
-        keyPath: "id",
-        autoIncrement: true,
-      });
-    }
 
-    // Create "tasks" store if it doesn't exist
-    if (!db.objectStoreNames.contains("tasks")) {
-      db.createObjectStore("tasks", {
-        keyPath: "id",
-        autoIncrement: true,
-      });
-    }
-  };
+    const formData = {
+      ...(isEditing ? (type === "task" ? editingTask : editingProject) : {}),
+      ...{
+        // updated fields
+        projectTitle,
+        taskTitle,
+        description,
+        dueDate,
+        tags: tags.split(",").map((t) => t.trim()),
+        associatedProject,
+        priority,
+        accentColor,
+        status: isEditing
+          ? type === "task"
+            ? editingTask.status
+            : editingProject.status
+          : "pending",
+        createdAt: isEditing
+          ? type === "task"
+            ? editingTask.createdAt
+            : editingProject.createdAt
+          : new Date(),
+      },
+    };
 
-  request.onsuccess = (event) => {
-    const db = event.target.result;
+  useEffect(() => {
+    const request = indexedDB.open("SmartTaskManager", 2);
 
-    // Only load projects if opening task modal
-    if (type === "task" && show) {
-      const transaction = db.transaction("projects", "readonly");
-      const store = transaction.objectStore("projects");
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains("projects")) {
+        db.createObjectStore("projects", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+      }
+      if (!db.objectStoreNames.contains("tasks")) {
+        db.createObjectStore("tasks", { keyPath: "id", autoIncrement: true });
+      }
+    };
 
-      const getAll = store.getAll();
-      getAll.onsuccess = () => {
-        setProjects(getAll.result);
-      };
-    }
-  };
+    request.onsuccess = (event) => {
+      const db = event.target.result;
 
-  request.onerror = (e) => {
-    console.error("IndexedDB error:", e);
-  };
-}, [type, show]);
+      // Load projects for dropdown
+      if (type === "task" && show) {
+        const tx = db.transaction("projects", "readonly");
+        const store = tx.objectStore("projects");
+        const getAll = store.getAll();
+
+        getAll.onsuccess = () => {
+          setProjects(getAll.result);
+        };
+      }
+
+      // Pre-fill form fields when editing
+      if (show) {
+        if (isEditing && type === "task") {
+          setTaskTitle(editingTask.taskTitle);
+          setDescription(editingTask.description);
+          setDueDate(editingTask.dueDate);
+          setTags(
+            Array.isArray(editingTask?.tags)
+              ? editingTask.tags.join(", ")
+              : editingTask?.tags || ""
+          );
+
+          setAssociatedProject(editingTask.associatedProject);
+          setTags(editingTask.tags.join(", "));
+        } else if (isEditing && type === "project") {
+          setProjectTitle(editingProject.projectTitle);
+          setDescription(editingProject.description);
+          setAccentColor(editingProject.accentColor);
+         setTags(
+           Array.isArray(editingProject?.tags)
+             ? editingProject.tags.join(", ")
+             : editingProject?.tags || ""
+         );
+
+        } else {
+          // reset fields when not editing
+          setProjectTitle("");
+          setTaskTitle("");
+          setDescription("");
+          setDueDate("");
+          setTags("");
+          setAssociatedProject("");
+          setPriority("");
+          setAccentColor("");
+
+          if (setEditingTask) setEditingTask(null);
+          if (setEditingProject) setEditingProject(null);
+        }
+      }
+    };
+
+    request.onerror = (e) => {
+      console.error("IndexedDB error:", e);
+    };
+  }, [type, show, isEditing]);
+
 
   // initialize IndexedDB
   const request = indexedDB.open("SmartTaskManager", 2);
@@ -75,83 +139,93 @@ useEffect(() => {
       db.createObjectStore("tasks", { keyPath: "id", autoIncrement: true });
     }
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const newErrors = {};
 
- const handleSubmit = async (e) => {
-   e.preventDefault();
-   const newErrors = {};
+  if (type === "project" && !projectTitle.trim()) {
+    newErrors.projectTitle = "Project title is required";
+  }
+  if (type === "task") {
+    if (!taskTitle.trim()) newErrors.taskTitle = "Task title is required";
+    if (!dueDate.trim()) newErrors.dueDate = "Due date is required";
+    if (!associatedProject.trim())
+      newErrors.associatedProject = "Select a project";
+  }
 
-   if (type === "project" && !projectTitle.trim()) {
-     newErrors.projectTitle = "Project title is required";
-   }
-   if (type === "task") {
-     if (!taskTitle.trim()) newErrors.taskTitle = "Task title is required";
-     if (!dueDate.trim()) newErrors.dueDate = "Due date is required";
-     if (!associatedProject.trim())
-       newErrors.associatedProject = "Select a project";
-   }
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
 
-   if (Object.keys(newErrors).length > 0) {
-     setErrors(newErrors);
-     return;
-   }
+  setErrors({});
 
-   setErrors({});
-   const formData =
-     type === "project"
-       ? {
-           projectTitle,
-           description,
-           accentColor,
-           tags,
-           percentage: 0,
-           status: "stale",
-           createdAt: new Date(),
-         }
-       : {
-           taskTitle,
-           description,
-           dueDate,
-           tags: tags.split(",").map((t) => t.trim()),
-           associatedProject,
-           priority,
-           status: "pending",
-           timeCompleted: 0,
-           createdAt: new Date(),
-         };
+  try {
+    const db = await getDB();
+    const tx = db.transaction(
+      type === "project" ? "projects" : "tasks",
+      "readwrite"
+    );
+    const store = tx.objectStore(type === "project" ? "projects" : "tasks");
 
-   try {
-     const db = await getDB();
-     const tx = db.transaction(
-       type === "project" ? "projects" : "tasks",
-       "readwrite"
-     );
-     const store = tx.objectStore(type === "project" ? "projects" : "tasks");
+    const isEdit = type === "task" ? editingTask : editingProject;
 
-     const request = store.add(formData);
+    const formData = {
+      ...(isEdit || {}),
+      ...(type === "project"
+        ? {
+            projectTitle,
+            description,
+            accentColor,
+            tags: tags.split(",").map((t) => t.trim()),
+            percentage: isEdit?.percentage || 0,
+            status: isEdit?.status || "stale",
+            createdAt: isEdit?.createdAt || new Date(),
+          }
+        : {
+            taskTitle,
+            description,
+            dueDate,
+            tags: tags.split(",").map((t) => t.trim()),
+            associatedProject,
+            priority,
+            status: isEdit?.status || "pending",
+            timeCompleted: isEdit?.timeCompleted || 0,
+            createdAt: isEdit?.createdAt || new Date(),
+          }),
+    };
 
-     request.onsuccess = () => {
-       toast.success(`${type === "project" ? "Project" : "Task"} added!`);
-       onClose(); // ✅ Only close when DB confirms
-       // Reset fields
-       setProjectTitle("");
-       setTaskTitle("");
-       setDescription("");
-       setDueDate("");
-       setTags("");
-       setAssociatedProject("");
-       setPriority("");
-       setAccentColor("");
-     };
+    const request = isEdit ? store.put(formData) : store.add(formData);
 
-     request.onerror = (event) => {
-       console.error("Error adding to IndexedDB:", event.target.error);
-       toast.error("Error adding item. Please try again.");
-     };
-   } catch (err) {
-     console.error("IndexedDB error:", err);
-     toast.error("Error accessing database. Please try again.");
-   }
- };
+    request.onsuccess = () => {
+      toast.success(
+        `${type === "project" ? "Project" : "Task"} ${
+          isEdit ? "updated" : "added"
+        }!`
+      );
+      onClose(); // after success transaction from DB close modal
+      setProjectTitle("");
+      setTaskTitle("");
+      setDescription("");
+      setDueDate("");
+      setTags("");
+      setAssociatedProject("");
+      setPriority("");
+      setAccentColor("");
+
+      if (setEditingTask) setEditingTask(null);
+      if (setEditingProject) setEditingProject(null);
+    };
+
+    request.onerror = (event) => {
+      console.error("Error adding/updating to IndexedDB:", event.target.error);
+      toast.error("Error saving item. Please try again.");
+    };
+  } catch (err) {
+    console.error("IndexedDB error:", err);
+    toast.error("Error accessing database. Please try again.");
+  }
+};
 
   if (!show) {
     return null;
@@ -165,7 +239,7 @@ useEffect(() => {
   const priorityButtonClasses = "px-3 py-1 rounded-full text-white border";
 
   if (type === "project") {
-    title = "Create a New Project";
+    title = isEditing ? "Editing Project" : "Create a New Project";
     content = (
       <form className="space-y-4">
         <div>
@@ -233,7 +307,7 @@ useEffect(() => {
       </form>
     );
   } else if (type === "task") {
-    title = "Create a New Task";
+    title = isEditing ? "Editing Task" : "Create a New Task.";
     content = (
       <form className="space-y-4 rounded-2xl">
         <div>
@@ -313,7 +387,7 @@ useEffect(() => {
             value={associatedProject}
             onChange={(e) => setAssociatedProject(e.target.value)}
           >
-            <option className="bg-neutral-800" value="">
+            <option className="bg-neutral-800 font-semibold" value="">
               -- Select a Project --
             </option>
 
@@ -360,7 +434,7 @@ useEffect(() => {
         </fieldset>
       </form>
     );
-  }
+}
 
   return (
     <div
