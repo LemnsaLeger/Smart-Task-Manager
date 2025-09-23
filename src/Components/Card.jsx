@@ -38,7 +38,9 @@ const Card = ({
           <Trash size={30}/>
         </button>
         <button
-          onClick={updateItem}
+          onClick={() => {
+            updateItem();
+          }}
           className="text-white text-sm"
         >
           <PencilLine size={30}/>
