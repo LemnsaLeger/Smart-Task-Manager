@@ -18,8 +18,8 @@ import toast from "react-hot-toast";
 const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState("project");
-  const [isActive, setIsActive] = useState(true);
-  const [activeTask, setActiveTask] = useState(null);
+  const [isActive, setIsActive] = useState(null);
+  const [activeTask, setActiveTask] = useState([]);
   const [page, setPage] = useState("home");
   const [taskFromDB, setTaskFromDB] = useState([]);
   const [projectsFromDB, setProjects] = useState([]);
@@ -135,6 +135,27 @@ const HomePage = () => {
     setPage("home");
   };
 
+  const updatedItem = async (type, updateItem) => {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(type === "project" ? "projects" : "tasks", "readwrite");
+      const store = tx.objectStore(type === "project" ? "projects" : "tasks");
+      await store.put(updateItem);
+
+      if(type === "task") {
+        setActiveTask(updateItem);
+      } else {
+        setProjects((prevProjects) => 
+          prevProjects.map((project) => (project.id === updatedItem.id ? updateItem : project))
+        );
+      }
+
+      await tx.done;
+    } catch (error) {
+      console.log("Error updating, ", error);
+      toast.error("Failed to update item");
+    }
+  }
   // view project
   const handleProjectView = () => {
     setPage("project tasks");
@@ -193,7 +214,7 @@ const HomePage = () => {
                   className="bg-black p-2 rounded-full text-white cursor-pointer"
                   onClick={() => {
                     setModalType("project");
-                    openModal();
+                    openModal("project");
                   }}
                 >
                   <Plus strokeWidth={3} />
@@ -297,7 +318,9 @@ const HomePage = () => {
         );
 
       case "manage task":
-        return <Timer handleBackHome={handleBackHome} task={activeTask} />;
+        return <Timer handleBackHome={handleBackHome} task={activeTask} 
+        updateItem={updatedItem}
+        />;
       
       default:
         return null;
