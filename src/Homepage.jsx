@@ -11,7 +11,7 @@ import getDB from "./util/getDb.js";
 import  "../src/index.css";
 import { useCallback, useState } from "react";
 
-import { Plus } from "lucide-react";
+import { Plus, BookText } from "lucide-react";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
 
@@ -257,7 +257,10 @@ const HomePage = () => {
               </section>
             </section>
             <aside className="tasks relative">
-              <h3 className="font-medium text-2xl">Today's Tasks</h3>
+              <h3 className="font-medium text-2xl flex items-center gap-2 cursor-pointer">
+                Today's Tasks{" "}
+                <BookText onClick={() => handleSetPage("Today's Tasks")} />{" "}
+              </h3>
               {/* {create new task butto} */}
               <div className="flex items-center justify-end gap-1 font-medium absolute right-4 top-2 p-1 rounded-2xl  cursor-pointer border border-gray-300">
                 new task{" "}
@@ -321,6 +324,10 @@ const HomePage = () => {
         return <Timer handleBackHome={handleBackHome} task={activeTask} 
         updateItem={updatedItem}
         />;
+
+
+      case "Today's Tasks":
+         return <TodaysTasks handleBackHome={() => handleBackHome()} tasksFromDB={taskFromDB}/>;
       
       default:
         return null;
