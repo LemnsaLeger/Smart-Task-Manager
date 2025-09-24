@@ -10,8 +10,9 @@ import {
 import toast from "react-hot-toast";
 import Modal from "./modal.jsx";
 import Button from "../Components/Button.jsx";
+import getDB from "../util/getDb.js";
 
-const Timer = ({ handleBackHome, task}) => {
+const Timer = ({ handleBackHome, task, updateItem}) => {
   const DATE = new Date();
   const hours = DATE.getHours();
   const minutes = DATE.getMinutes();
@@ -156,14 +157,28 @@ const Timer = ({ handleBackHome, task}) => {
     };
   });
 
-  // handle complete
-  const handleComplete = () => {
-    setIsComplete(!isComplete);
-    if (!isComplete) toast.success("Task Completed!");
-    pauseTimer();
-    if (isComplete) toast.error("Canceled!");
-  };
+   const handleComplete = () => {
+     const newStatus =
+       task.status === "completed" ? "in-progress" : "completed";
 
+     // Create the updated task object
+     const updatedTask = {
+       ...task,
+       status: newStatus,
+       completionDate: newStatus === "completed" ? new Date() : null, // Set completion date
+     };
+
+     // Call the updateItem function passed from the parent component
+     updateItem("task", updatedTask);
+
+     if (newStatus === "completed") {
+       toast.success("Task Completed 🐎 🎉");
+       pauseTimer();
+     } else {
+       toast.error("Task Completion Canceled!");
+     }
+   };
+ 
   // handle intervals
   const handleInterval = (title, intervals) => {
     handleModal;
@@ -200,7 +215,6 @@ const Timer = ({ handleBackHome, task}) => {
       setWorkingTime()
     }
   }
-
   return (
     <section id="timer-ui" className="min-h-[100vh] flex flex-col p-4">
       {intervals && modal && (
@@ -293,10 +307,10 @@ const Timer = ({ handleBackHome, task}) => {
         <button
           onClick={handleComplete}
           className={`border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer ${
-            isComplete ? " bg-black text-white" : ""
+            task.status === "completed" ? " bg-black text-white" : ""
           } border-black`}
         >
-          {isComplete ? "Completed!" : "complete"}
+          {task.status === "completed" ? "Completed!" : "complete"}
         </button>
         <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer">
           Set break interval
