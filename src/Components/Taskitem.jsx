@@ -15,7 +15,7 @@ const TaskItem = ({ task, onOpen, setEditingTask, openModal, deleteTask }) => {
     <>
       <article
         key={taskTitle}
-        className="glass-card p-4 flex items-center backdrop-blur bg-white/30 rounded shadow justify-between"
+        className="glass-card p-4 flex items-center backdrop-blur bg-white/30 rounded shadow justify-between mt-4"
       >
         <div className="relative" onClick={() => onOpen(task)}>
           <h4 className="font-semibold text-lg text-black"> {taskTitle} </h4>
