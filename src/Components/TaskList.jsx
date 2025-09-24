@@ -21,19 +21,19 @@ const TaskList = ({
   }
   return (
     <>
-      <div className="space-y-4 mt-3  rounded-xl p-2 relative">
+      <div className="space-y-4 mt-14  rounded-xl p-2 relative">
+        <button
+          onClick={handleOpenCreateModal}
+          className="absolute right-0 -top-13 mt-4 mb-8 bg-gray-800 text-white px-4 py-2 rounded-full flex items-center gap-2 hover:bg-gray-700 transition-colors"
+        >
+          <Plus size={16} />
+          Create New Task
+        </button>
         {tasks.length === 0 ? (
           <>
             <p className="text-gray-700  fixed top-[20vh] left-20">
               No tasks created yet!
             </p>
-              <button
-                onClick={handleOpenCreateModal}
-                className="absolute right-0 top-[-.8rem] mt-4 bg-gray-800 text-white px-4 py-2 rounded-full flex items-center gap-2 hover:bg-gray-700 transition-colors"
-              >
-                <Plus size={16} />
-                Create New Task
-              </button>
           </>
         ) : (
           tasks.map((task) => (
