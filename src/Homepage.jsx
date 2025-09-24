@@ -43,7 +43,15 @@ const HomePage = () => {
       const store = tx.objectStore("projects");
       const request = store.getAll();
       request.onsuccess = (e) => {
-        setProjects(e.target.result);
+        // setProjects(e.target.result);
+        // calculating percentage for each project
+        const projects = e.target.result;
+        const projectsWithPercentage = projects.map(project => ({
+          ...project,
+          percentage: calculateProjectPercentage(taskFromDB, project.projectTitle),
+        }));
+
+        setProjects(projectsWithPercentage);
       };
     } catch (err) {
       console.error("Error fetching projects:", err);
@@ -61,29 +69,6 @@ const HomePage = () => {
       };
     } catch (err) {
       console.error("Error fetching tasks:", err);
-    }
-  };
-
-  // UPDATE
-  const updateItem = async (type, updatedItem) => {
-    try {
-      const db = await getDB();
-      const tx = db.transaction(
-        type === "project" ? "projects" : "tasks",
-        "readwrite"
-      );
-      const store = tx.objectStore(type === "project" ? "projects" : "tasks");
-      const request = store.put(updatedItem);
-      request.onsuccess = () => {
-        toast.success(`${type} updated`);
-        refreshData();
-      };
-      request.onerror = () => {
-        toast.error("Failed to update item");
-      };
-    } catch (err) {
-      console.error("Error updating item:", err);
-      toast.error("Error accessing DB");
     }
   };
 
@@ -151,6 +136,7 @@ const HomePage = () => {
       }
 
       await tx.done;
+      refreshData();
     } catch (error) {
       console.log("Error updating, ", error);
       toast.error("Failed to update item");
@@ -186,6 +172,21 @@ const HomePage = () => {
       refreshData();
     }
   }, [isModalOpen, refreshData]);
+
+  // function to filter in progress projects
+  const inProgressProjects = projectsFromDB.filter((project) => project.status === 'in-progress');
+
+  // function to calculate project's %
+  const calculateProjectPercentage = (tasks, projectName) => {
+    const projectTasks = tasks.filter(task => task.associatedProject === projectName);
+
+    if(projectTasks.length === 0){
+      return 0;
+    }
+    const completedTasks = projectTasks.filter(task => task.status === "completed").length;
+
+    return Math.round((completedTasks / projectTasks.length) * 100);
+  }
 
   // render
   const render = () => {
@@ -241,6 +242,7 @@ const HomePage = () => {
                       createdAt={project.createdAt.toDateString()}
                       deleteItem={() => deleteItem("project", project.id)}
                       updateItem={() => handleEditingProject(project)}
+                      projectAccent={project.accentColor}
                     />
                   </div>
                 ))}
@@ -250,9 +252,19 @@ const HomePage = () => {
               <section className="my-6 mt-8">
                 <h3 className="text-xl font-semibold mb-4">In Progress</h3>
                 <div className="flex gap-4 overflow-x-auto pb-4 scroll-container">
-                  <InProgressTask title="Design Landing Page" />
+                  {/* <InProgressTask title="Design Landing Page" />
                   <InProgressTask title="Build API Endpoints" />
-                  <InProgressTask title="Configure Database" />
+                  <InProgressTask title="Configure Database" /> */}
+                  {
+                    inProgressProjects.length === 0 ? 
+                       <p className="text-gray-700">You haven't started any Project.</p>
+                    :
+                    inProgressProjects.map(project => (
+                      <InProgressTask 
+                      key={project.id}
+                      title={project.projectTitle} />
+                    ))
+                  }
                 </div>
               </section>
             </section>
