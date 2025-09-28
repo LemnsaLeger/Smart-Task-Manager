@@ -270,7 +270,7 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
   }
 
   return (
-    <section id="timer-ui" className="min-h-[100vh] flex flex-col p-4">
+    <section id="timer-ui" className="min-h-[100vh] flex flex-col p-4 max-w-[800px] place-self-center">
       {intervals && modal && (
         <Modal
           show={modal}
