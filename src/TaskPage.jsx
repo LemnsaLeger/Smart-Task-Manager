@@ -2,13 +2,14 @@
 import { useEffect, useState } from "react";
 import { Plus, ChevronLeft, User } from "lucide-react";
 
-const TodaysTasks = ({ handleBackHome, tasksFromDB = [] }) => {
+const TodaysTasks = ({ handleBackHome, tasksFromDB = [], onOpen }) => {
   const today = new Date().toISOString().split("T")[0];
   const [tasks, setTasks] = useState(tasksFromDB);
   const [numberOfDays, setNumberOfDays] = useState();
   const presentMonth = new Date().getMonth() + 1;
+  const [activeFilter, setActiveFilter] = useState("All");
 
- useEffect(() => {
+  useEffect(() => {
     const dayCount = () => {
       setNumberOfDays(
         new Date(new Date().getFullYear(), presentMonth, 0).getDate()
@@ -16,15 +17,38 @@ const TodaysTasks = ({ handleBackHome, tasksFromDB = [] }) => {
     };
 
     dayCount();
- }, [presentMonth]);
+  }, [presentMonth]);
 
-  const days = Array.from({length: numberOfDays}, (_, i) => i + 1); // array of 1 - total number of days in a month
+  const days = Array.from({ length: numberOfDays }, (_, i) => i + 1); // array of 1 - total number of days in a month
 
   useEffect(() => {
     const todayTasks = tasksFromDB.filter((t) => t.dueDate === today);
     const otherTasks = tasksFromDB.filter((t) => t.dueDate !== today);
     setTasks([...todayTasks, ...otherTasks]);
   }, [today, tasksFromDB]);
+
+  // this logic handles filtering logic
+  useEffect(() => {
+    let filteredTask = tasksFromDB;
+    // setActiveFilter("");
+    switch(activeFilter) {
+      case "All":
+        filteredTask = tasksFromDB;
+        break;
+      case "High":
+        return <p>no result..</p>;
+      case "Today":
+        filteredTask.filter(task => task.dueDate === today);
+        break;
+      default:
+        filteredTask = tasksFromDB;
+        setActiveFilter("All");
+        break;
+    }
+
+    setTasks(filteredTask);
+
+  },[]);
 
   return (
     <div className="relative h-screen overflow-y-auto pb-28 bg-gradient-to-b text-black p-4">
@@ -71,8 +95,9 @@ const TodaysTasks = ({ handleBackHome, tasksFromDB = [] }) => {
               <span
                 key={filter}
                 className={`px-3 py-1 bg-white/20 rounded-full cursor-pointer hover:bg-white/30 ${
-                  filter === "All" ? " font-bold text-xl" : ""
+                  filter === activeFilter ? " font-bold text-xl" : ""
                 } `}
+                onClick={() => setActiveFilter(filter)}
               >
                 {filter}
               </span>
@@ -89,6 +114,7 @@ const TodaysTasks = ({ handleBackHome, tasksFromDB = [] }) => {
             className={`p-4 rounded-xl shadow-md mb-8 w-full max-w-[375px] ${
               task.dueDate === today ? "bg-black" : "bg-white/100 text-black"
             }`}
+            onClick={() => onOpen(task)}
           >
             <h4
               className={`capitalize font-bold text-xl text-black ${
