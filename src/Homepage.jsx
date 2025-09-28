@@ -7,6 +7,7 @@ import Modal from "./Components/Modal.jsx";
 import TodaysTasks from "./TaskPage.jsx";
 import Timer from "./features/PomodoroTimer.jsx";
 import getDB from "./util/getDb.js";
+import TaskItem from "./Components/Taskitem.jsx";
 
 import  "../src/index.css";
 import { useCallback, useState } from "react";
@@ -174,9 +175,6 @@ const HomePage = () => {
     }
   }, [isModalOpen, refreshData]);
 
-  // function to filter in progress projects
-  const inProgressProjects = projectsFromDB.filter((project) => project.status === 'in-progress');
-
   // function to calculate project's %
   const calculateProjectPercentage = (tasks, projectName) => {
     const projectTasks = tasks.filter(task => task.associatedProject === projectName);
@@ -188,6 +186,14 @@ const HomePage = () => {
 
     return Math.round((completedTasks / projectTasks.length) * 100);
   }
+
+  // logic to fetch in-progress projects
+  const progressProjects = projectsFromDB.filter((project) => {
+    return taskFromDB.some((task) => task.associatedProject === project.projectTitle);
+  })
+
+  // task for homepage, [high priority
+  const importantTasks = taskFromDB.filter((task) => task.priority === "high" || "medium")
 
   // render
   const render = () => {
@@ -225,32 +231,34 @@ const HomePage = () => {
 
               {/* projects view */}
               <section className="flex gap-4 overflow-x-auto pb-4 scroll-container">
-                {projectsFromDB.map((project, idx) =>{
-
-                  const completionPercentage = calculateProjectPercentage(taskFromDB, project.projectTitle);
+                {projectsFromDB.map((project, idx) => {
+                  const completionPercentage = calculateProjectPercentage(
+                    taskFromDB,
+                    project.projectTitle
+                  );
 
                   return (
-                     <div key={project.id} className="min-w-[19rem] shrink-0 ">
-                     <Card
-                       title={project.projectTitle}
-                       description={project.description}
-                       hashTags={
-                         typeof project.tags === "string"
-                           ? project.tags.split(",").map((tag) => tag.trim())
-                           : []
-                       }
-                       onClick={() => {
-                         setPage("view project");
-                         setActiveProject(project.projectTitle);
-                       }}
-                       percentageComplete={completionPercentage}
-                       createdAt={project.createdAt.toDateString()}
-                       deleteItem={() => deleteItem("project", project.id)}
-                       updateItem={() => handleEditingProject(project)}
-                       projectAccent={project.accentColor}
-                     />
-                   </div>
-                  )
+                    <div key={project.id} className="min-w-[19rem] shrink-0 ">
+                      <Card
+                        title={project.projectTitle}
+                        description={project.description}
+                        hashTags={
+                          typeof project.tags === "string"
+                            ? project.tags.split(",").map((tag) => tag.trim())
+                            : []
+                        }
+                        onClick={() => {
+                          setPage("view project");
+                          setActiveProject(project.projectTitle);
+                        }}
+                        percentageComplete={completionPercentage}
+                        createdAt={project.createdAt.toDateString()}
+                        deleteItem={() => deleteItem("project", project.id)}
+                        updateItem={() => handleEditingProject(project)}
+                        projectAccent={project.accentColor}
+                      />
+                    </div>
+                  );
                 })}
               </section>
 
@@ -261,16 +269,24 @@ const HomePage = () => {
                   {/* <InProgressTask title="Design Landing Page" />
                   <InProgressTask title="Build API Endpoints" />
                   <InProgressTask title="Configure Database" /> */}
-                  {
-                    inProgressProjects.length === 0 ? 
-                       <p className="text-gray-700">You haven't started any Project.</p>
-                    :
-                    inProgressProjects.map(project => (
-                      <InProgressTask 
-                      key={project.id}
-                      title={project.projectTitle} />
+                  {progressProjects.length === 0 ? (
+                    <p className="text-gray-700">
+                      You haven't started any Project.
+                    </p>
+                  ) : (
+                    progressProjects.map((project) => (
+                      <InProgressTask
+                        key={project.id}
+                        title={project.projectTitle}
+                        onClick={() => {
+                          setPage("view project");
+                          setActiveProject(project.projectTitle);
+                        }}
+                      //  createdAt={project.createdAt}
+                      project={project.createdAt}
+                      />
                     ))
-                  }
+                  )}
                 </div>
               </section>
             </section>
@@ -289,7 +305,20 @@ const HomePage = () => {
                 />
               </div>
               <section>
-                {/* <TaskList openTask={handleClickedTask} /> */}
+             {
+              importantTasks.map((task) => {
+                return (
+                  <TaskItem key={task.id} task={task} onOpen={() => handleClickedTask(task)}
+                  deleteTask={() => deleteItem("task", task.id)}
+                  setEditingTask={() =>{
+                    setEditingTask(task);
+                    openModal("task");
+                  } }
+
+                  />
+                )
+              })
+             }
               </section>
             </aside>
           </main>
@@ -345,7 +374,13 @@ const HomePage = () => {
 
 
       case "Today's Tasks":
-        return  <TodaysTasks handleBackHome={() => handleBackHome()} tasksFromDB={taskFromDB}/>;
+        return (
+          <TodaysTasks
+            handleBackHome={() => handleBackHome()}
+            tasksFromDB={taskFromDB}
+            onOpen={handleClickedTask}
+          />
+        );
       default:
         return null;
     }
@@ -359,7 +394,7 @@ const HomePage = () => {
       </header>
 
       {/* <p>We are home!</p> */}
-      {render()}
+      <main className="max-w-[1000px] mt-0 mb-0 ml-auto mr-auto p-0">{render()}</main>
     </>
   );
 }
