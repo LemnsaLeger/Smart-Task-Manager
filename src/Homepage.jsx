@@ -225,28 +225,33 @@ const HomePage = () => {
 
               {/* projects view */}
               <section className="flex gap-4 overflow-x-auto pb-4 scroll-container">
-                {projectsFromDB.map((project, idx) => (
-                  <div key={project.id} className="min-w-[19rem] shrink-0 ">
-                    <Card
-                      title={project.projectTitle}
-                      description={project.description}
-                      hashTags={
-                        typeof project.tags === "string"
-                          ? project.tags.split(",").map((tag) => tag.trim())
-                          : []
-                      }
-                      onClick={() => {
-                        setPage("view project");
-                        setActiveProject(project.projectTitle);
-                      }}
-                      percentageComplete={project.percentage}
-                      createdAt={project.createdAt.toDateString()}
-                      deleteItem={() => deleteItem("project", project.id)}
-                      updateItem={() => handleEditingProject(project)}
-                      projectAccent={project.accentColor}
-                    />
-                  </div>
-                ))}
+                {projectsFromDB.map((project, idx) =>{
+
+                  const completionPercentage = calculateProjectPercentage(taskFromDB, project.projectTitle);
+
+                  return (
+                     <div key={project.id} className="min-w-[19rem] shrink-0 ">
+                     <Card
+                       title={project.projectTitle}
+                       description={project.description}
+                       hashTags={
+                         typeof project.tags === "string"
+                           ? project.tags.split(",").map((tag) => tag.trim())
+                           : []
+                       }
+                       onClick={() => {
+                         setPage("view project");
+                         setActiveProject(project.projectTitle);
+                       }}
+                       percentageComplete={completionPercentage}
+                       createdAt={project.createdAt.toDateString()}
+                       deleteItem={() => deleteItem("project", project.id)}
+                       updateItem={() => handleEditingProject(project)}
+                       projectAccent={project.accentColor}
+                     />
+                   </div>
+                  )
+                })}
               </section>
 
               {/* bar carousel for  */}
