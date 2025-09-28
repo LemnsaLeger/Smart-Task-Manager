@@ -11,7 +11,7 @@ const Card = ({
   projectAccent
 }) => {
   return (
-    <article className="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70">
+    <article className="flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70 w-[300px] max-w-[500px]">
       <div className="p-4 md:p-5 flex flex-col gap-3 relative">
         <h3 className="text-lg font-bold text-gray-800 dark:text-white capitalize">
           {title}
@@ -28,19 +28,19 @@ const Card = ({
             {percentageComplete}%
           </span>
         </p>
-        <button onClick={() => onClick()}>
+        <button onClick={() => onClick()} className="cursor-pointer">
           <CircleChevronRight color="white" />
         </button>
       </div>
       <p className="ml-4 flex gap-4 ">
-        <button onClick={deleteItem} className="text-white text-sm">
+        <button onClick={deleteItem} className="text-white text-sm cursor-pointer">
           <Trash size={30} />
         </button>
         <button
           onClick={() => {
             updateItem();
           }}
-          className="text-white text-sm"
+          className="text-white text-sm cursor-pointer"
         >
           <PencilLine size={30} />
         </button>
