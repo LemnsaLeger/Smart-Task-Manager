@@ -127,6 +127,7 @@ const HomePage = () => {
       const store = tx.objectStore(type === "project" ? "projects" : "tasks");
       await store.put(updateItem);
 
+      refreshData();
       if(type === "task") {
         setActiveTask(updateItem);
       } else {
@@ -339,8 +340,7 @@ const HomePage = () => {
 
 
       case "Today's Tasks":
-         return <TodaysTasks handleBackHome={() => handleBackHome()} tasksFromDB={taskFromDB}/>;
-      
+        return  <TodaysTasks handleBackHome={() => handleBackHome()} tasksFromDB={taskFromDB}/>;
       default:
         return null;
     }
