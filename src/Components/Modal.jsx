@@ -192,6 +192,9 @@ const handleSubmit = async (e) => {
             status: isEdit?.status || "pending",
             timeCompleted: isEdit?.timeCompleted || 0,
             createdAt: isEdit?.createdAt || new Date(),
+            workDuration: 25 * 60 * 1000,
+            shortDuration: 5 * 60 * 1000,
+            longDuration: 15 * 60 * 1000,
           }),
     };
 
