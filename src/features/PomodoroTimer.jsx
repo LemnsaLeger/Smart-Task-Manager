@@ -23,11 +23,11 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
   const [modal, setModal] = useState(false);
 
   // durations would be in milliseconds
-  const [workDuration, setWorkDuration] = useState(25 * 60 * 1000);
+  const [workDuration, setWorkDuration] = useState(task.workDuration);
   const [isActive, setIsActive] = useState(false);
   const [timer, setTimer] = useState(workDuration);
-  const [shortDuration, setShortDuration] = useState(5 * 60 * 1000); // for short break
-  const [longDuration, setLongDuration] = useState(15 * 60 * 1000);
+  const [shortDuration, setShortDuration] = useState(task.shortDuration);
+  const [longDuration, setLongDuration] = useState(task.longDuration);
   const [currentMode, setCurrentMode] = useState("work");
   const [remainingTime, setRemainingTime] = useState(workDuration);
   const [numberOfCycles, setNumberOfCycles] = useState(0);
@@ -56,6 +56,11 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
         const now = Date.now();
         const change = now - lastUpdatedRef.current;
         lastUpdatedRef.current = now;
+
+        if(currentMode === "work") {
+          setWorkingTime((prev) => prev + change);
+        }
+
         setTimer((prev) => {
           const next = prev - change;
           if (next <= 0) {
@@ -68,7 +73,7 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
       }, 50); // update every 50 milliseconds
     }
     return () => clearInterval(intervalRef.current);
-  }, [isActive]);
+  }, [isActive, currentMode]);
 
   // handle what happens when timer hits 0
   const handleIntervalEnd = () => {
@@ -165,7 +170,8 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
      const updatedTask = {
        ...task,
        status: newStatus,
-       completionDate: newStatus === "completed" ? new Date() : null, // Set completion date
+       completionDate: newStatus === "completed" ? new Date() : null, 
+       timeCompleted: totalTimeWorking,
      };
 
      // Call the updateItem function passed from the parent component
@@ -178,10 +184,22 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
        toast.error("Task Completion Canceled!");
      }
    };
+
+   // function to format millisecs to hh:mm:ss
+   const formatTotalTime = (milliseconds) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+
+    return `${h.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+   }
  
   // handle intervals
   const handleInterval = (title, intervals) => {
-    handleModal;
+    handleModal();
     setModalTitle(title);
     setIntervals(intervals);
   };
@@ -215,14 +233,52 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
       setWorkingTime()
     }
   }
+
+  // this function handles user selected interval
+  const handleIntervalSelect = async (minutes) => {
+    const durationInMS = minutes * 60 * 1000;
+    let updatedTask = {...task};
+
+    if (modalTitle.includes("Work")) {
+    setWorkDuration(durationInMS);
+    setTimer(durationInMS); // Set main timer
+    setCurrentMode("work");
+   
+    updatedTask.workDuration = durationInMS;
+  } else if (modalTitle.includes("Break")) {
+    setShortDuration(durationInMS);
+    setLongDuration(durationInMS * 3); 
+    updatedTask.shortDuration = durationInMS;
+    updatedTask.longDuration = durationInMS * 3;
+  }
+  
+  setModal(false)
+
+  try {
+   // save the updated values to DB
+    await updateItem("task", updatedTask);
+    toast.success("Interval updated and saved!");
+
+    // Updating the local task prop reference to reflect the saved changes
+    task.workDuration = updatedTask.workDuration;
+    task.shortDuration = updatedTask.shortDuration;
+    task.longDuration = updatedTask.longDuration;
+  } catch (error) {
+    console.error("Failed to save timer settings:", error);
+    toast.error("Failed to save settings.");
+  }
+  }
+
   return (
     <section id="timer-ui" className="min-h-[100vh] flex flex-col p-4">
       {intervals && modal && (
         <Modal
-          modal={handleModal}
+          show={modal}
           intervals={intervals}
           title={modalTitle}
           handleModal={() => setModal(!modal)}
+          onSelectInterval={handleIntervalSelect}
+          handleClose={() => setModal(!modal)}
         />
       )}
       <h1 className="text-3xl uppercase font-semibold ">{task.taskTitle}</h1>
@@ -241,8 +297,12 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
           {task.priority}
         </p>
         <div className="flex items-center border w-fit p-0.5 pl-1 pr-2 gap-2 text-sm rounded-2xl">
-          <Clock className="sm:size-6" />
-          <p>{task.dueDate}</p>
+          <Clock className="sm:size-6 font-semibold" />
+          <p>
+            {task.status === "completed"
+              ? "Completed ! 🥳🐎"
+              : `${task.dueDate}`}
+          </p>
         </div>
       </section>
 
@@ -268,9 +328,11 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
       {/* status bar */}
       <section className="h-fit bg-gray-300 rounded mt-4">
         <p className="pl-2 font-medium flex justify-between pr-2">
-          {`${daysBetweenDates(task.dueDate, currentDate)} day(s) left!`}
+          {task.status === "completed"
+            ? "Completed ! 🥳🐎"
+            : `${daysBetweenDates(task.dueDate, currentDate)} day(s) left!`}
           <span className="block">
-            Total time taken: {totalTimeWorking}
+            Total time taken: {formatTime(task.totalTimeTaken || 0)}
           </span>
         </p>
       </section>
@@ -289,15 +351,30 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
         </h2>
 
         <div className="buttons flex items-center justify-center mt-4">
+          {" "}
           <button
             className="cursor-pointer"
             onClick={startTimer}
-            disabled={isActive === false ? false : true}
+            disabled={isActive || task.status === "completed"}
           >
-            <PlayIcon color={`${isActive === true ? "gray" : "black"}`} />
-          </button>
-          <button onClick={pauseTimer} className="cursor-pointer">
-            <Pause color={`${isActive === true ? "black" : "gray"}`} />
+            {" "}
+            <PlayIcon
+              color={`${
+                isActive || task.status === "completed" ? "gray" : "black"
+              }`}
+            />{" "}
+          </button>{" "}
+          <button
+            onClick={pauseTimer}
+            className="cursor-pointer"
+            disabled={task.status === "completed"}
+          >
+            {" "}
+            <Pause
+              color={`${
+                isActive && task.status !== "completed" ? "black" : "gray"
+              }`}
+            />{" "}
           </button>
         </div>
         <p className="mt-6 uppercase text-center">{currentMode}</p>
@@ -312,12 +389,16 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
         >
           {task.status === "completed" ? "Completed!" : "complete"}
         </button>
-        <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer">
+        <button
+          className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer"
+          onClick={() => handleInterval("Set Break Interval", [5, 10, 15])}
+        >
           Set break interval
         </button>
         <button
           onClick={() => {
             handleInterval("Set break interval", [25, 30, 45, 55]);
+            handleModal();
           }}
           className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer "
         >
@@ -329,13 +410,10 @@ const Timer = ({ handleBackHome, task, updateItem}) => {
         >
           Reset timer
         </button>
-        <button className="border text-[0.8em] p-1 rounded-2xl font-medium cursor-pointer ">
-          Discard progress
-        </button>
       </section>
 
       <button
-        className="absolute bottom-0 left-4 border p-2 rounded-2xl text-[0.9rem] font-medium flex"
+        className="fixed bottom-0 left-4 border p-2 rounded-2xl text-[0.9rem] font-medium flex"
         onClick={() => handleBackHome()}
       >
         <ChevronLeft />
