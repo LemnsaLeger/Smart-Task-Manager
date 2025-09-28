@@ -1,13 +1,14 @@
 
 
-const InProgressTask = ({ title }) => {
+const InProgressTask = ({ title, onClick, project }) => {
     return (
-      <article className=" relative rounded-[10px] border border-gray-200 bg-white px-4 pt-2 pb-4 dark:border-gray-700 backdrop-blur-md dark:bg-gray-900 w-[60%] flex-shrink-0">
+      <article className=" relative rounded-[10px] border border-gray-200 bg-white px-4 pt-2 pb-4 dark:border-gray-700 backdrop-blur-md dark:bg-gray-900 w-[60%] flex-shrink-0 max-w-[500px]"
+      onClick={() => onClick()}>
         <time
           dateTime="2022-10-10"
           className="block text-xs text-gray-500 dark:text-gray-400"
         >
-          10th Oct 2025
+          {project.toLocaleString()}
         </time>
 
         <a href="#">
