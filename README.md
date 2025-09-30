@@ -80,12 +80,6 @@ The application will open in your browser, typically at `http://localhost:5173`.
 | `src/TaskPage.jsx` | Contains the `TodaysTasks` component, responsible for filtering tasks. |
 
 -----
-That's fantastic\! Opening your project, **TaskFisher**, to contributions is a great way to grow its features and community.
-
-I'll update the **Contributing** section of your `README.md` to be comprehensive, human-friendly, and clear, outlining exactly how others can help.
-
------
-
 ## 🤝 Contributing to TaskFisher
 
 We welcome contributions of all kinds\! Whether it's reporting a bug, suggesting a new feature(themes, profile, etc), improving the documentation, or submitting a code change, your help makes TaskFisher better.
